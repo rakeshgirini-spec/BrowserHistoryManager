@@ -1,0 +1,250 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct Node {
+    char url[100];
+    struct Node *prev;
+    struct Node *next;
+} Node;
+
+Node *head = NULL;     // start of history
+Node *current = NULL;  // current page pointer
+
+// Create a new node
+Node* createNode(const char *url) {
+    Node *newNode = (Node*)malloc(sizeof(Node));
+    strcpy(newNode->url, url);
+    newNode->prev = NULL;
+    newNode->next = NULL;
+    return newNode;
+}
+
+// Visit a new website
+void visitWebsite(const char *url) {
+    Node *newNode = createNode(url);
+
+    // If there is forward history, clear it
+    if (current != NULL && current->next != NULL) {
+        Node *temp = current->next;
+        while (temp != NULL) {
+            Node *toDelete = temp;
+            temp = temp->next;
+            free(toDelete);
+        }
+        current->next = NULL;
+    }
+
+    if (head == NULL) {
+        head = newNode;
+        current = head;
+    } else {
+        newNode->prev = current;
+        if (current != NULL)
+            current->next = newNode;
+        current = newNode;
+    }
+
+    printf("Visited: %s\n", url);
+}
+
+// Display all history
+void displayHistory() {
+    if (head == NULL) {
+        printf("History is empty.\n");
+        return;
+    }
+    printf("\nBrowser History:\n");
+    Node *temp = head;
+    while (temp != NULL) {
+        if (temp == current)
+            printf("-> %s (current)\n", temp->url);
+        else
+            printf("   %s\n", temp->url);
+        temp = temp->next;
+    }
+}
+
+// Navigate backward
+void goBack() {
+    if (current != NULL && current->prev != NULL) {
+        current = current->prev;
+        printf("Moved back to: %s\n", current->url);
+    } else {
+        printf("No previous page.\n");
+    }
+}
+
+// Navigate forward
+void goForward() {
+    if (current != NULL && current->next != NULL) {
+        current = current->next;
+        printf("Moved forward to: %s\n", current->url);
+    } else {
+        printf("No forward page.\n");
+    }
+}
+
+// Delete a website from history
+void deleteWebsite(const char *url) {
+    Node *temp = head;
+    while (temp != NULL) {
+        if (strcmp(temp->url, url) == 0) {
+            if (temp->prev != NULL)
+                temp->prev->next = temp->next;
+            else
+                head = temp->next;
+
+            if (temp->next != NULL)
+                temp->next->prev = temp->prev;
+
+            if (current == temp)
+                current = temp->prev != NULL ? temp->prev : temp->next;
+
+            free(temp);
+            printf("Deleted: %s\n", url);
+            return;
+        }
+        temp = temp->next;
+    }
+    printf("Website not found.\n");
+}
+
+// Clear entire history
+void clearHistory() {
+    Node *temp = head;
+    while (temp != NULL) {
+        Node *toDelete = temp;
+        temp = temp->next;
+        free(toDelete);
+    }
+    head = NULL;
+    current = NULL;
+    printf("All history cleared.\n");
+}
+
+// Search website (linear search)
+void searchWebsite(const char *url) {
+    Node *temp = head;
+    int pos = 1;
+    while (temp != NULL) {
+        if (strcmp(temp->url, url) == 0) {
+            printf("Website '%s' found at position %d in history.\n", url, pos);
+            return;
+        }
+        temp = temp->next;
+        pos++;
+    }
+    printf("Website '%s' not found.\n", url);
+}
+
+// Sort history alphabetically (bubble sort on array)
+void sortHistory() {
+    if (head == NULL) {
+        printf("History is empty.\n");
+        return;
+    }
+
+    // Count nodes
+    int n = 0;
+    Node *temp = head;
+    while (temp != NULL) {
+        n++;
+        temp = temp->next;
+    }
+
+    // Copy URLs into array
+    char urls[n][100];
+    temp = head;
+    for (int i = 0; i < n; i++) {
+        strcpy(urls[i], temp->url);
+        temp = temp->next;
+    }
+
+    // Bubble sort
+    char t[100];
+    for (int i = 0; i < n-1; i++) {
+        for (int j = 0; j < n-i-1; j++) {
+            if (strcmp(urls[j], urls[j+1]) > 0) {
+                strcpy(t, urls[j]);
+                strcpy(urls[j], urls[j+1]);
+                strcpy(urls[j+1], t);
+            }
+        }
+    }
+
+    printf("\nHistory (sorted alphabetically):\n");
+    for (int i = 0; i < n; i++) {
+        printf("%s\n", urls[i]);
+    }
+}
+
+// Menu
+void menu() {
+    printf("\n--- Browser History Manager ---\n");
+    printf("1. Visit new website\n");
+    printf("2. Delete a website\n");
+    printf("3. Display history\n");
+    printf("4. Back\n");
+    printf("5. Forward\n");
+    printf("6. Search website\n");
+    printf("7. Sort history alphabetically\n");
+    printf("8. Clear history\n");
+    printf("9. Exit\n");
+    printf("Enter your choice: ");
+}
+
+int main() {
+    int choice;
+    char url[100];
+
+    do {
+        menu();
+        scanf("%d", &choice);
+        getchar(); // to consume newline
+
+        switch (choice) {
+            case 1:
+                printf("Enter website URL: ");
+                fgets(url, sizeof(url), stdin);
+                url[strcspn(url, "\n")] = '\0';
+                visitWebsite(url);
+                break;
+            case 2:
+                printf("Enter website URL to delete: ");
+                fgets(url, sizeof(url), stdin);
+                url[strcspn(url, "\n")] = '\0';
+                deleteWebsite(url);
+                break;
+            case 3:
+                displayHistory();
+                break;
+            case 4:
+                goBack();
+                break;
+            case 5:
+                goForward();
+                break;
+            case 6:
+                printf("Enter website URL to search: ");
+                fgets(url, sizeof(url), stdin);
+                url[strcspn(url, "\n")] = '\0';
+                searchWebsite(url);
+                break;
+            case 7:
+                sortHistory();
+                break;
+            case 8:
+                clearHistory();
+                break;
+            case 9:
+                clearHistory(); // free memory before exit
+                printf("Exiting...\n");
+                break;
+            default:
+                printf("Invalid choice.\n");
+        }
+    } while (choice != 9);
+
+    return 0;
+}
